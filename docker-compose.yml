@@ -1,0 +1,17 @@
+services:
+  broker:
+    build:
+      context: .
+      dockerfile: broker/Dockerfile
+    ports:
+      - "6969:6969"
+      # :^)
+
+  server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    ports:
+      - "6767:6767"
+    depends_on:
+      - broker
