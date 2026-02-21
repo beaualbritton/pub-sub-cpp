@@ -1,3 +1,4 @@
+#include "broker.hpp"
 #include <iostream>
 #include <map>
 #include <set>
@@ -6,16 +7,13 @@
 using std::map, std::string, std::set;
 using std::cout, std::endl;
 
-class Broker
-{
-  public:
 
-  Broker()
+  Broker::Broker()
   {
     cout << "hello, broker!" << endl;
   };
 
-  void subscribe(string& User, const string& Room)
+  void Broker::subscribe(string& User, const string& Room)
   {
     if(!rooms.contains(Room))
       rooms[Room] = set<string>();
@@ -24,12 +22,12 @@ class Broker
 
   }
 
-  void unsubscribe(string &User, const string& Room)
+  void Broker::unsubscribe(string &User, const string& Room)
   {
     rooms[Room].erase(User);
   }
 
-  void unsubscribe_all(string& User)
+  void Broker::unsubscribe_all(string& User)
   {
     //auto& cuts through verbosity -> map<string, set<string>::value pair& : rooms (pair.first, pair.second). yuck!
     for(auto& [room, users]: rooms)
@@ -38,12 +36,12 @@ class Broker
     }
   }
 
-  set<string> fetch_subscribers(const string& Room)
+  set<string> Broker::fetch_subscribers(const string& Room)
   {
     return rooms[Room];
   }
 
-  set<string> fetch_rooms(string& User)
+  set<string> Broker::fetch_rooms(string& User)
   {
     set<string> subscribedRooms;
 
@@ -56,18 +54,6 @@ class Broker
     return subscribedRooms;
   }
 
-
-  private:
-  /*
-    rooms is a map of sets i.e.,
-    rooms = {
-        "general": {'user1', 'user2'},
-        "gaming": {'user1', 'user3'}
-    }
- 
-  */
-  map<string, set<string>> rooms;
-};
 
 int main()
 {

@@ -6,6 +6,7 @@ using std::map, std::string, std::set;
 class Broker
 {
   public:
+  Broker();
   void subscribe(string& User, const string& Room);
   void unsubscribe(string& User, const string& Room);
   void unsubscribe_all(string& User);
@@ -14,5 +15,13 @@ class Broker
 
 
   private:
+  /*
+    rooms is a map of sets i.e.,
+    rooms = {
+        "general": {'user1', 'user2'},
+        "gaming": {'user1', 'user3'}
+    }
+ 
+  */
   map<string, set<string>> rooms;
 };
