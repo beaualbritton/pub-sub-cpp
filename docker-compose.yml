@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: broker/Dockerfile
     ports:
-      - "6969:6969"
+      - "6767:6767"
       # :^)
 
   server:
@@ -12,6 +12,6 @@ services:
       context: .
       dockerfile: server/Dockerfile
     ports:
-      - "6767:6767"
+      - "6969:6969"
     depends_on:
       - broker
