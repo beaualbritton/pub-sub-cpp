@@ -8,10 +8,15 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(Boost REQUIRED )
 find_package(Threads REQUIRED)
 
-foreach(target broker server)
+add_executable(server
+    server/server.cpp
+    server/session.cpp
+)
+add_executable(broker
+    broker/broker.cpp
+)
 
-    add_executable(${target}
-    ${target}/${target}.cpp)
+foreach(target broker server)
 
     target_link_libraries(${target} 
     PRIVATE Boost::headers
