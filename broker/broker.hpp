@@ -6,11 +6,11 @@ using std::map, std::string, std::set;
 class Broker
 {
   public:
-  void subscribe(string User, string Room);
-  void unsubscribe(string User, string Room);
-  void unsubscribe_all(string User);
-  set<string> fetch_subscribers(string Room);
-  set<string> fetch_rooms(string User);
+  void subscribe(string& User, const string& Room);
+  void unsubscribe(string& User, const string& Room);
+  void unsubscribe_all(string& User);
+  set<string> fetch_subscribers(const string& Room);
+  set<string> fetch_rooms(string& User);
 
 
   private:
