@@ -7,11 +7,11 @@ class Broker
 {
   public:
   Broker();
-  void subscribe(string& User, const string& Room);
-  void unsubscribe(string& User, const string& Room);
-  void unsubscribe_all(string& User);
+  void subscribe(const string& User, const string& Room);
+  void unsubscribe(const string& User, const string& Room);
+  void unsubscribe_all(const string& User);
   set<string> fetch_subscribers(const string& Room);
-  set<string> fetch_rooms(string& User);
+  set<string> fetch_rooms(const string& User);
 
 
   private:
