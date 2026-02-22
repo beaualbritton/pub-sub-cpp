@@ -3,6 +3,7 @@
 #include <boost/beast.hpp>
 #include <exception>
 #include <iostream>
+#include <string>
 
 namespace asio = boost::asio;
 namespace beast = boost::beast;
@@ -45,13 +46,13 @@ void WebSocketSession::on_read(beast::error_code ec, size_t n)
 
   try
   {
-    //read raw bytes into buffer, clear it & echo back to client
+    //read raw bytes into buffer, clear it & send to message handler in server
     response_ = beast::buffers_to_string(buffer_.data());
     buffer_.consume(n);
 
-    ws_.text(true);
-    ws_.async_write(asio::buffer(response_),
-                    beast::bind_front_handler(&WebSocketSession::on_write, shared_from_this())); //binds function to shared_from_this
+    handler_(response_);
+    do_read_loop();
+
   }
   catch (exception const& e)
   {
@@ -63,7 +64,35 @@ void WebSocketSession::on_read(beast::error_code ec, size_t n)
 //cycling read -> write -> read -> write etc etc
 void WebSocketSession::on_write(beast::error_code ec, size_t n)
 {
-   cerr << "Write: " << n << " bytes (" << ec.message() << ")" << endl;
-   if (!ec)
-       do_read_loop();
+  cerr << "Write: " << n << " bytes (" << ec.message() << ")" << endl;
+  if (!ec)
+  {
+    send_queue.pop_front();
+    writing_ = false;
+
+    if(!send_queue.empty())
+      do_write();
+  }
+}
+
+void WebSocketSession::set_handler(function<void(const string&)>handler)
+{
+  handler_ = std::move(handler);
+}
+
+void WebSocketSession::send(const string& content)
+{
+  send_queue.emplace_back(content);
+  if(!writing_)
+    do_write();
+}
+
+void WebSocketSession::do_write()
+{
+  writing_ = true;
+  string front = send_queue.front();
+  ws_.text(true);
+  ws_.async_write(asio::buffer(front),
+                  beast::bind_front_handler(&WebSocketSession::on_write, shared_from_this()));
+
 }
