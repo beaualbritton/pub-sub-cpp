@@ -1,6 +1,6 @@
 // Source - https://stackoverflow.com/a/78513859
 // Retrieved 2026-02-21, License - CC BY-SA 4.0
-#include "server.hpp"
+#include "ws_server.hpp"
 #include "actions.hpp"
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
@@ -18,34 +18,19 @@ using tcp = asio::ip::tcp;
 using std::cerr, std::endl, std::string, std::exception, std::make_shared, std::weak_ptr, std::shared_ptr;
 
 
-void WebSocketServer::do_accept()
+std::shared_ptr<Session> WebSocketServer::create_session(tcp::socket socket)
 {
-  acceptor_.async_accept(beast::bind_front_handler(&WebSocketServer::on_accept, this));
-}
+  auto session = make_shared<WebSocketSession>(std::move(socket));
 
-//self-explanatory - sits on socket and accepts incoming clients kicks off handshake
-//moves to ws session
-void WebSocketServer::on_accept(beast::error_code ec, tcp::socket socket)
-{
-  if (ec)
-    cerr << "Accept error: " << ec.message() << endl;
-
-  else
+  //auto -> std::function<void(const string& message)>
+  auto handler_lambda = [this, session](const string& message)
   {
-    auto session = make_shared<WebSocketSession>(std::move(socket));
+    handle_message(message,session);
+  };
 
-    //auto -> std::function<void(const string& message)>
-    auto handler_lambda = [this, session](const string& message)
-    {
-      handle_message(message,session);
-    };
+  session->set_handler(std::move(handler_lambda));
 
-    session->set_handler(std::move(handler_lambda));
-    session->run();
-
-  }
-
-  do_accept();
+  return session;
 }
 
 void WebSocketServer::handle_message(const string& message, shared_ptr<WebSocketSession> session)
