@@ -9,9 +9,10 @@ find_package(Boost REQUIRED COMPONENTS json)
 find_package(Threads REQUIRED)
 
 add_executable(server
-    server/server.cpp
-    server/session.cpp
+    server/ws_server.cpp
     broker/broker.cpp
+    lib/session.cpp
+    lib/server.cpp
 )
 #add_executable(broker
 #    broker/broker.cpp
