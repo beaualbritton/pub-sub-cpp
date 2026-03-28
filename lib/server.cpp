@@ -35,26 +35,3 @@ void Server::on_accept(beast::error_code ec, tcp::socket socket)
   }
   do_accept();
 }
-
-
-
-int main()
-{
-  std::cout << "Web server is running:\n";
-
-  try
-  {
-    asio::io_context ioc;
-    tcp::endpoint endpoint(tcp::v4(), 6969);
-    Server server(ioc, endpoint);
-
-    //io_context is event loop engine, ioc does the 'work' of the server
-    //will need to add multiple threads using ioc.run later
-    ioc.run();
-  }
-  catch (exception const& e)
-  {
-    std::cerr << "Error: " << e.what() << std::endl;
-    return 1;
-  }
-}
