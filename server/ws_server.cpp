@@ -1,7 +1,7 @@
 // Source - https://stackoverflow.com/a/78513859
 // Retrieved 2026-02-21, License - CC BY-SA 4.0
 #include "ws_server.hpp"
-#include "actions.hpp"
+#include "../lib/actions.hpp"
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 #include <boost/json.hpp>
@@ -98,8 +98,7 @@ void WebSocketServer::broadcast(const string& username, const string& room, cons
 void WebSocketServer::join(const string& username, const string& room, std::shared_ptr<WebSocketSession> session)
 {
   connections[username] = session;
-  broker.subscribe(username, room);
-  string content = "joined room " + room;
+  broker.subscribe(username, room); string content = "joined room " + room;
 
   publish(username, room, content);
 }
