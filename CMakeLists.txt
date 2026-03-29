@@ -14,12 +14,13 @@ add_executable(server
     lib/session.cpp
     lib/server.cpp
 )
-#add_executable(broker
-#    broker/broker.cpp
-#)
-
-# TODO: add back broker once socket setup
-foreach(target server)
+add_executable(broker
+    broker/main.cpp
+    broker/broker_server.cpp
+    lib/session.cpp
+    lib/server.cpp
+)
+foreach(target server broker)
 
     target_link_libraries(${target} 
     PRIVATE Boost::headers
