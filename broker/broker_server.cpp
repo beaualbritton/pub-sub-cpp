@@ -1,7 +1,10 @@
 #include "broker_server.hpp"
 #include "../lib/actions.hpp"
+#include <boost/json.hpp>
+#include <boost/json/object.hpp>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <boost/asio.hpp>
@@ -11,13 +14,16 @@
 
 using std::map, std::string, std::set;
 using std::cout, std::endl;
-using std::cerr, std::endl, std::string, std::exception, std::make_shared, std::weak_ptr, std::shared_ptr;
+using std::cerr, std::endl, std::string, std::to_string, std::exception, std::make_shared, std::weak_ptr, std::shared_ptr;
 
 namespace json = boost::json;
 
 std::shared_ptr<Session> Broker::create_session(tcp::socket socket)
 {
   auto session = make_shared<BrokerSession>(std::move(socket));
+
+  string server_id = to_string(connections.size());
+  connections[server_id] = session;
 
   //auto -> std::function<void(const string& message)>
   auto handler_lambda = [this, session](const string& message)
@@ -35,12 +41,19 @@ void Broker::handle_message(const string& message, std::shared_ptr<BrokerSession
  //ugly
   json::value jv = json::parse(message);
   json::object& jobj = jv.as_object();
+  string action = "", session_id = "", msg = "", room ="";
 
-  string action = string(jobj["action"].as_string());
-  string session_id = string(jobj["session_id"].as_string());
-  string server_id = string(jobj["server_id"].as_string());
+  if(jobj.contains("action"))
+    action = string(jobj["action"].as_string());
 
-  string room = "general";
+  if(jobj.contains("id"))
+    session_id = string(jobj["id"].as_string());
+
+  if(jobj.contains("message"))
+    msg = string(jobj["message"].as_string());
+
+  if(jobj.contains("room"))
+    room = string(jobj["room"].as_string());
 
   switch(parse_action(action))
   {
@@ -69,19 +82,49 @@ void Broker::handle_message(const string& message, std::shared_ptr<BrokerSession
       set<string> subscribers = fetch_subscribers(room);
       break;
     }
+    case Action::FORWARD:
+    {
+      forward(jobj, room);
+      break;
+    }
     case Action::NOOP:
       return;
   }
 }
 
-void Broker::subscribe(const string& id, const string& Room)
+void Broker::forward(json::object& jobj, const string& room)
 {
-  rooms[Room].insert(id);
+  set<string> subscribers = fetch_subscribers(room);
+  json::array jsubs;
+
+  for(const string& sub : subscribers)
+  {
+    jsubs.push_back(json::value(sub));
+  }
+
+  jobj["subscribers"] = jsubs;
+  //iterator for map,   
+  //map<std::string,std::weak_ptr<WebSocketSession>>::iterator!!!!
+  for (const auto& [id, connection] : connections)
+  {
+    shared_ptr<BrokerSession> session = connection.lock();
+    if(session)
+    {
+      session->send(json::serialize(jobj));
+    }
+    else
+      connections.erase(id);
+  }
 }
 
-void Broker::unsubscribe(const string &id, const string& Room)
+void Broker::subscribe(const string& id, const string& room)
 {
-  rooms[Room].erase(id);
+  rooms[room].insert(id);
+}
+
+void Broker::unsubscribe(const string &id, const string& room)
+{
+  rooms[room].erase(id);
 }
 
 void Broker::unsubscribe_all(const string& id)
@@ -93,9 +136,9 @@ void Broker::unsubscribe_all(const string& id)
   }
 }
 
-set<string> Broker::fetch_subscribers(const string& Room)
+set<string> Broker::fetch_subscribers(const string& room)
 {
-  return rooms[Room];
+  return rooms[room];
 }
 
 set<string> Broker::fetch_rooms(const string& id)

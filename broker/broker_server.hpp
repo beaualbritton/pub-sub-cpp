@@ -3,7 +3,9 @@
 #include <map>
 #include <set>
 #include <string>
+#include <boost/json.hpp>
 using std::map, std::string, std::set;
+namespace json = boost::json;
 
 class Broker : public Server
 {
@@ -15,10 +17,11 @@ class Broker : public Server
 
   void handle_message(const string& message, std::shared_ptr<BrokerSession> session);
 
-  void subscribe(const string& id, const string& Room);
-  void unsubscribe(const string& id, const string& Room);
+  void forward(json::object& jobj, const string& room);
+  void subscribe(const string& id, const string& room);
+  void unsubscribe(const string& id, const string& room);
   void unsubscribe_all(const string& id);
-  set<string> fetch_subscribers(const string& Room);
+  set<string> fetch_subscribers(const string& room);
   set<string> fetch_rooms(const string& id);
 
 
@@ -32,4 +35,5 @@ class Broker : public Server
  
   */
   map<string, set<string>> rooms;
+  std::map<std::string,std::weak_ptr<BrokerSession>> connections;
 };
