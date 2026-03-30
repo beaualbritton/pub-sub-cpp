@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-enum class Action  {JOIN, PUBLISH, SUBSCRIBE, UNSUBSCRIBE, UNSUBSCRIBE_ALL, FETCH_ROOMS, FETCH_SUBSCRIBERS, NOOP};
+enum class Action  {JOIN, PUBLISH, FORWARD, SUBSCRIBE, UNSUBSCRIBE, UNSUBSCRIBE_ALL, FETCH_ROOMS, FETCH_SUBSCRIBERS, NOOP};
 
 inline Action parse_action(const std::string& action)
 {
@@ -9,6 +9,8 @@ inline Action parse_action(const std::string& action)
     return Action::JOIN;
   if (action == "publish")
     return Action::PUBLISH;
+  if (action == "forward")
+    return Action::FORWARD;
   if (action == "subscribe")
     return Action::SUBSCRIBE;
   if (action == "unsubscribe")
