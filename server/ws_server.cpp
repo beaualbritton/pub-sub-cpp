@@ -1,4 +1,4 @@
-// Source - https://stackoverflow.com/a/78513859
+// SourcBrokerSessione - https://stackoverflow.com/a/78513859
 // Retrieved 2026-02-21, License - CC BY-SA 4.0
 #include "ws_server.hpp"
 #include "../lib/actions.hpp"
@@ -8,6 +8,7 @@
 #include <boost/json/object.hpp>
 #include <iostream>
 #include <memory>
+#include <set>
 #include <string>
 
 namespace asio = boost::asio;
@@ -15,7 +16,7 @@ namespace beast = boost::beast;
 namespace json = boost::json;
 
 using tcp = asio::ip::tcp;
-using std::cerr, std::endl, std::string, std::exception, std::make_shared, std::weak_ptr, std::shared_ptr;
+using std::cerr, std::set, std::endl, std::string, std::exception, std::make_shared, std::weak_ptr, std::shared_ptr;
 
 
 std::shared_ptr<Session> WebSocketServer::create_session(tcp::socket socket)
@@ -66,9 +67,19 @@ void WebSocketServer::handle_message(const string& message, shared_ptr<WebSocket
 
 }
 
-void WebSocketServer::broadcast(const string& username, const string& room, const string& message)
+void WebSocketServer::handle_forward(const string& msg_recv)
 {
-  set<string> subscribers = broker.fetch_subscribers(room);
+  json::value jv = json::parse(msg_recv);
+  json::object& jobj = jv.as_object();
+
+  string from = string(jobj["id"].as_string());
+  string msg = string(jobj["message"].as_string());
+
+  json::array& all_subscribers = jobj["subscribers"].as_array();
+  std::set<string> subscribers;
+
+  for(auto sub : all_subscribers)
+    subscribers.insert(string(sub.as_string()));
 
   for(string sub: subscribers)
   {
@@ -84,21 +95,51 @@ void WebSocketServer::broadcast(const string& username, const string& room, cons
 
       if(client)
       {
-        if(sub != username)
-          client->send(message);
+        if(sub != from)
+          client->send(msg);
       }
 
       else
         connections.erase(client_iterator);
     }
   }
-  std::cout << message << std::endl;
+  std::cout << msg << std::endl;
+}
+
+void WebSocketServer::set_forward_handler()
+{
+  //auto -> std::function<void(const string& message)>
+  auto forward_lambda = [this](const string& message)
+  {
+    handle_forward(message);
+  };
+
+  broker_client.set_handler(forward_lambda);
+
+}
+
+void WebSocketServer::broadcast(const string& username, const string& room, const string& message)
+{
+  json::object msg;
+  msg["action"] = "forward";
+  msg["id"] = username;
+  msg["room"] = room;
+  msg["message"] = message;
+
+  broker_client.send(json::serialize(msg));
 }
 
 void WebSocketServer::join(const string& username, const string& room, std::shared_ptr<WebSocketSession> session)
 {
   connections[username] = session;
-  broker.subscribe(username, room); string content = "joined room " + room;
+
+  json::object msg;
+  msg["action"] = "subscribe";
+  msg["id"] = username;
+  msg["room"] = room;
+
+  broker_client.send(json::serialize(msg));
+  string content = "joined room " + room;
 
   publish(username, room, content);
 }
@@ -116,7 +157,8 @@ int main()
   try
   {
     asio::io_context ioc;
-    tcp::endpoint endpoint(tcp::v4(), 6969);
+    int port = std::stoi(std::getenv("PORT"));
+    tcp::endpoint endpoint(tcp::v4(), port);
     WebSocketServer server(ioc, endpoint);
 
     //io_context is event loop engine, ioc does the 'work' of the server
