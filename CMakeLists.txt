@@ -10,7 +10,7 @@ find_package(Threads REQUIRED)
 
 add_executable(server
     server/ws_server.cpp
-    broker/broker.cpp
+    broker/broker_client.cpp
     lib/session.cpp
     lib/server.cpp
 )

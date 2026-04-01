@@ -6,8 +6,7 @@ services:
     ports:
       - "6767:6767"
       # :^)
-
-  server:
+  server1:
     build:
       context: .
       dockerfile: server/Dockerfile
@@ -15,3 +14,25 @@ services:
       - "6969:6969"
     depends_on:
       - broker
+    environment:
+      - PORT=6969
+  server2:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    ports:
+      - "9696:9696"
+    depends_on:
+      - broker
+    environment:
+      - PORT=9696
+  server3:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    ports:
+      - "2121:2121"
+    depends_on:
+      - broker
+    environment:
+      - PORT=2121
