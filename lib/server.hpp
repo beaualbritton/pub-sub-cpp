@@ -11,7 +11,8 @@ class Server
 {
   public:
   Server(asio::io_context& ioc, tcp::endpoint endpoint) : acceptor_(ioc, endpoint) { do_accept(); }
-
+  
+  //overridden by broker and ws_server, different behavior for each process
   virtual std::shared_ptr<Session> create_session(tcp::socket socket) = 0;
 
   private:

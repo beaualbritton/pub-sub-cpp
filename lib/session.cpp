@@ -68,6 +68,7 @@ void Session::on_write(beast::error_code ec, size_t n)
   if (!ec)
   {
     send_queue.pop_front();
+    //set writing_ false after clearing queue
     writing_ = false;
 
     if(!send_queue.empty())
@@ -75,11 +76,15 @@ void Session::on_write(beast::error_code ec, size_t n)
   }
 }
 
+// ws_server side, this will parse actions and call join, publish
+// on broker side, this will parse actions and call subscribe, unsubscribe, forward
 void Session::set_handler(function<void(const string&)>handler)
 {
   handler_ = std::move(handler);
 }
 
+// ws_server side, this will send an end-user a message
+// on broker side, this will send a message to the broker (forward)
 void Session::send(const string& content)
 {
   send_queue.emplace_back(content);

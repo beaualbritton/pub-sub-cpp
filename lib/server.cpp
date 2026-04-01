@@ -23,14 +23,15 @@ void Server::do_accept()
 }
 
 //self-explanatory - sits on socket and accepts incoming clients kicks off handshake
-//moves to ws session
 void Server::on_accept(beast::error_code ec, tcp::socket socket)
 {
   if (ec)
     cerr << "Accept error: " << ec.message() << endl;
   else
   {
+    //overridden by broker and ws_server, different behavior for each process
     auto session = create_session(std::move(socket));
+    //kick off session in base class
     session->run();
   }
   do_accept();
