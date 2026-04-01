@@ -18,11 +18,12 @@ using std::cerr, std::endl, std::string, std::to_string, std::exception, std::ma
 
 namespace json = boost::json;
 
+//whenever a server joins, add it to a map of connected servers
 std::shared_ptr<Session> Broker::create_session(tcp::socket socket)
 {
   auto session = make_shared<BrokerSession>(std::move(socket));
 
-  string server_id = to_string(connections.size());
+  string server_id = to_string(connections.size()); // 1, 2, 3 etc
   connections[server_id] = session;
 
   //auto -> std::function<void(const string& message)>
@@ -36,13 +37,16 @@ std::shared_ptr<Session> Broker::create_session(tcp::socket socket)
   return session;
 }
 
+//parses received messages from server, corresponding actions
 void Broker::handle_message(const string& message, std::shared_ptr<BrokerSession> session)
 {
- //ugly
   json::value jv = json::parse(message);
   json::object& jobj = jv.as_object();
+
+  //some of these fields might be null - subscribe won't carry a message for example
   string action = "", session_id = "", msg = "", room ="";
 
+  //check them here instead
   if(jobj.contains("action"))
     action = string(jobj["action"].as_string());
 
@@ -74,16 +78,20 @@ void Broker::handle_message(const string& message, std::shared_ptr<BrokerSession
     }
     case Action::FETCH_ROOMS:
     {
+      //TODO: send back on fetch request from server
       set<string> rooms = fetch_rooms(session_id);
       break;
     }
     case Action::FETCH_SUBSCRIBERS:
     {
+      //TODO: send back on fetch request from server
       set<string> subscribers = fetch_subscribers(room);
       break;
     }
     case Action::FORWARD:
     {
+      //appends message received from server with a subscriber list
+      //depending on room's subscribers - send message appended w/ universal list
       forward(jobj, room);
       break;
     }
@@ -92,28 +100,32 @@ void Broker::handle_message(const string& message, std::shared_ptr<BrokerSession
   }
 }
 
+//forwards message from Server A -> all servers, with appended subscriber list
 void Broker::forward(json::object& jobj, const string& room)
 {
   set<string> subscribers = fetch_subscribers(room);
   json::array jsubs;
 
+  //convert set of subscribers into json array
   for(const string& sub : subscribers)
   {
     jsubs.push_back(json::value(sub));
   }
 
+  //append list of subscribers to json to send back to all servers
   jobj["subscribers"] = jsubs;
-  //iterator for map,   
-  //map<std::string,std::weak_ptr<WebSocketSession>>::iterator!!!!
+
+  //iterate thru map (dictionary) w/ pairs
   for (const auto& [id, connection] : connections)
   {
     shared_ptr<BrokerSession> session = connection.lock();
+    //send each Server a new message
     if(session)
     {
       session->send(json::serialize(jobj));
     }
     else
-      connections.erase(id);
+      connections.erase(id); //TODO: delete connections another way
   }
 }
 

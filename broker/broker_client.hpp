@@ -1,3 +1,4 @@
+//SEE: https://www.boost.org/doc/libs/develop/libs/beast/example/websocket/client/async/websocket_client_async.cpp
 #pragma once
 #include <boost/asio.hpp>
 #include <boost/asio/io_context.hpp>
@@ -12,6 +13,8 @@ namespace websocket = beast::websocket;
 using tcp = boost::asio::ip::tcp;
 using std::move, std::cerr, std::endl, std::string, std::function;
 
+// connects server to broker service
+// client (WS Server)<--> broker session <--> broker server
 class BrokerClient
 {
   public:
@@ -22,7 +25,6 @@ class BrokerClient
 
   void run(const string& host, const string& port);
 
-  //handler_(std::move(handler))
   void set_handler(function<void(const string&)>handler);
   void send(const string& content);
 
@@ -42,7 +44,7 @@ class BrokerClient
   
   tcp::resolver resolver_;
   // tcp socket handles bytes, websocket on top.
-  websocket::stream<tcp::socket> ws_;
+  websocket::stream<tcp::socket> ws_; // this was tcp stream in docs, gave me some issues
   beast::flat_buffer buffer_; //scary!
   std::string host_;
   std::string response_;

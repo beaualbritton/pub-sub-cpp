@@ -1,3 +1,4 @@
+//SEE: https://www.boost.org/doc/libs/develop/libs/beast/example/websocket/client/async/websocket_client_async.cpp
 #include "broker_client.hpp"
 #include <boost/asio.hpp>
 #include <boost/asio/io_context.hpp>
@@ -15,6 +16,7 @@ namespace websocket = beast::websocket;
 using tcp = boost::asio::ip::tcp;
 using std::move, std::cerr, std::endl, std::string, std::function, std::exception;
 
+//run client based on provided host info
 void BrokerClient::run(const string& host, const string& port)
 {
   host_ = host;
@@ -70,6 +72,7 @@ void BrokerClient::on_handshake(beast::error_code ec)
   ws_.async_read(buffer_,beast::bind_front_handler(&BrokerClient::on_read, this));
 
 }
+// same read/write loop as session, write queue for send(), read loop for received message
 
 void BrokerClient::do_read_loop()
 {
