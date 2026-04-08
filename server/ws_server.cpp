@@ -18,7 +18,7 @@ namespace json = boost::json;
 using tcp = asio::ip::tcp;
 using std::cerr, std::set, std::endl, std::string, std::exception, std::make_shared, std::weak_ptr, std::shared_ptr;
 
-// this handles messages for end-users
+//this handles messages for end-users
 std::shared_ptr<Session> WebSocketServer::create_session(tcp::socket socket)
 {
   auto session = make_shared<WebSocketSession>(std::move(socket));
@@ -55,7 +55,7 @@ void WebSocketServer::handle_message(const string& message, shared_ptr<WebSocket
     }
     case Action::PUBLISH:
     {
-     string content = string(jobj["content"].as_string());
+      string content = string(jobj["content"].as_string());
 
       publish(username, room, content);
       break;
@@ -107,7 +107,7 @@ void WebSocketServer::handle_forward(const string& msg_recv)
   std::cout << msg << std::endl;
 }
 
-// set handler for broker_client, handles received messages from broker to this server
+//set handler for broker_client, handles received messages from broker to this server
 void WebSocketServer::set_forward_handler()
 {
   //auto -> std::function<void(const string& message)>
@@ -120,8 +120,8 @@ void WebSocketServer::set_forward_handler()
 
 }
 
-// create a json object to send directly to broker
-// broadcasting to broker instead of clients
+//create a json object to send directly to broker
+//broadcasting to broker instead of clients
 void WebSocketServer::broadcast(const string& username, const string& room, const string& message)
 {
   json::object msg;

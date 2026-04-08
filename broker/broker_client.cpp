@@ -5,6 +5,8 @@
 #include <boost/beast.hpp>
 #include <boost/beast/core/bind_handler.hpp>
 #include <boost/beast/core/error.hpp>
+#include <boost/json.hpp>
+#include <boost/json/object.hpp>
 #include <exception>
 #include <deque>
 #include <iostream>
@@ -12,14 +14,16 @@
 namespace asio = boost::asio;
 namespace beast = boost::beast;
 namespace websocket = beast::websocket;
+namespace json = boost::json;
 
 using tcp = boost::asio::ip::tcp;
 using std::move, std::cerr, std::endl, std::string, std::function, std::exception;
 
 //run client based on provided host info
-void BrokerClient::run(const string& host, const string& port)
+void BrokerClient::run(const string& host, const string& port, string id)
 {
   host_ = host;
+  server_id_ = id;
   resolver_.async_resolve(host,port,
                           beast::bind_front_handler(&BrokerClient::on_resolve, this));
 }
@@ -69,8 +73,12 @@ void BrokerClient::on_handshake(beast::error_code ec)
     return;
   }
 
-  ws_.async_read(buffer_,beast::bind_front_handler(&BrokerClient::on_read, this));
+  json::object msg;
+  msg["action"] = "register";
+  msg["id"] = server_id_;
+  send(json::serialize(msg));
 
+  ws_.async_read(buffer_,beast::bind_front_handler(&BrokerClient::on_read, this));
 }
 // same read/write loop as session, write queue for send(), read loop for received message
 

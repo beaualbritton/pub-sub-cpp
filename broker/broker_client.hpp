@@ -4,6 +4,7 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/beast.hpp>
 #include <boost/beast/core/error.hpp>
+#include <boost/uuid.hpp>
 #include <deque>
 #include <iostream>
 
@@ -11,6 +12,7 @@ namespace beast = boost::beast;
 namespace websocket = beast::websocket;
 
 using tcp = boost::asio::ip::tcp;
+using uuid = boost::uuids::uuid;
 using std::move, std::cerr, std::endl, std::string, std::function;
 
 // connects server to broker service
@@ -23,7 +25,7 @@ class BrokerClient
 
   ~BrokerClient() { cerr << "Server" << host_ << " closed" << endl; }
 
-  void run(const string& host, const string& port);
+  void run(const string& host, const string& port, string id);
 
   void set_handler(function<void(const string&)>handler);
   void send(const string& content);
@@ -54,4 +56,5 @@ class BrokerClient
   function<void(const string&)> handler_;
   std::deque<string> send_queue;
   bool writing_;
+  string server_id_;
 };

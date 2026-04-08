@@ -23,9 +23,6 @@ std::shared_ptr<Session> Broker::create_session(tcp::socket socket)
 {
   auto session = make_shared<BrokerSession>(std::move(socket));
 
-  string server_id = to_string(connections.size()); // 1, 2, 3 etc
-  connections[server_id] = session;
-
   //auto -> std::function<void(const string& message)>
   auto handler_lambda = [this, session](const string& message)
   {
@@ -44,12 +41,13 @@ void Broker::handle_message(const string& message, std::shared_ptr<BrokerSession
   json::object& jobj = jv.as_object();
 
   //some of these fields might be null - subscribe won't carry a message for example
-  string action = "", session_id = "", msg = "", room ="";
+  string action = "", session_id = "", server_id = "",msg = "", room ="";
 
-  //check them here instead
   if(jobj.contains("action"))
     action = string(jobj["action"].as_string());
 
+  if(jobj.contains("server"))
+    server_id = string(jobj["server"].as_string());
   if(jobj.contains("id"))
     session_id = string(jobj["id"].as_string());
 
@@ -61,6 +59,11 @@ void Broker::handle_message(const string& message, std::shared_ptr<BrokerSession
 
   switch(parse_action(action))
   {
+    case Action::REGISTER:
+    {
+      register_server(server_id, session);
+      break;
+    }
     case Action::SUBSCRIBE:
     {
       subscribe(session_id, room);
@@ -78,14 +81,23 @@ void Broker::handle_message(const string& message, std::shared_ptr<BrokerSession
     }
     case Action::FETCH_ROOMS:
     {
-      //TODO: send back on fetch request from server
       set<string> rooms = fetch_rooms(session_id);
+      append_jobj(jobj, rooms, "rooms");
+      send_back(jobj,session);
+      break;
+    }
+    case Action::FETCH_ALL_ROOMS:
+    {
+      set<string> all_rooms = fetch_all_rooms();
+      append_jobj(jobj, all_rooms, "all_rooms");
+      send_back(jobj,session);
       break;
     }
     case Action::FETCH_SUBSCRIBERS:
     {
-      //TODO: send back on fetch request from server
       set<string> subscribers = fetch_subscribers(room);
+      append_jobj(jobj, subscribers, "subscribers");
+      send_back(jobj,session);
       break;
     }
     case Action::FORWARD:
@@ -104,16 +116,7 @@ void Broker::handle_message(const string& message, std::shared_ptr<BrokerSession
 void Broker::forward(json::object& jobj, const string& room)
 {
   set<string> subscribers = fetch_subscribers(room);
-  json::array jsubs;
-
-  //convert set of subscribers into json array
-  for(const string& sub : subscribers)
-  {
-    jsubs.push_back(json::value(sub));
-  }
-
-  //append list of subscribers to json to send back to all servers
-  jobj["subscribers"] = jsubs;
+  append_jobj(jobj, subscribers, "subscribers");
 
   //iterate thru map (dictionary) w/ pairs
   for (const auto& [id, connection] : connections)
@@ -164,4 +167,36 @@ set<string> Broker::fetch_rooms(const string& id)
   }
 
   return subscribedRooms;
+}
+
+set<string> Broker::fetch_all_rooms()
+{
+  set<string> subscribedRooms;
+
+  for(auto& [room, users] : rooms)
+    subscribedRooms.insert(room);
+
+  return subscribedRooms;
+}
+
+void Broker::register_server(const string& server_id, std::shared_ptr<BrokerSession> session)
+{
+  connections[server_id] = session;
+}
+
+void Broker::send_back(json::object& jobj, std::shared_ptr<BrokerSession> session) 
+{
+  session->send(json::serialize(jobj));
+}
+
+void Broker::append_jobj(json::object& jobj, set<string> to_append, const string entry)
+{
+  json::array jarray;
+
+  for(const string& sub : to_append)
+  {
+    jarray.push_back(json::value(sub));
+  }
+
+  jobj[entry] = jarray;
 }

@@ -1,19 +1,22 @@
 #pragma once
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
+#include <boost/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
 #include "session.hpp"
 namespace asio  = boost::asio;
 namespace beast = boost::beast;
 using tcp = asio::ip::tcp;
-
+using uuid = boost::uuids::uuid;
 
 class Server
 {
   public:
-  Server(asio::io_context& ioc, tcp::endpoint endpoint) : acceptor_(ioc, endpoint) { do_accept(); }
+  Server(asio::io_context& ioc, tcp::endpoint endpoint) : acceptor_(ioc, endpoint), id_(boost::uuids::random_generator()()){ do_accept();}
   
   //overridden by broker and ws_server, different behavior for each process
   virtual std::shared_ptr<Session> create_session(tcp::socket socket) = 0;
+  uuid id_;
 
   private:
   void do_accept();

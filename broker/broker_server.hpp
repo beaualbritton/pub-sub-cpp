@@ -27,6 +27,10 @@ class Broker : public Server
   void unsubscribe_all(const string& id);
   set<string> fetch_subscribers(const string& room);
   set<string> fetch_rooms(const string& id);
+  set<string> fetch_all_rooms();
+  void register_server(const string& server_id_, std::shared_ptr<BrokerSession> session);
+  void send_back(json::object& jobj, std::shared_ptr<BrokerSession> session);
+  void append_jobj(json::object& jobj, set<string> to_append, const string entry);
 
 
   private:
