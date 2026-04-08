@@ -48,6 +48,7 @@ void Broker::handle_message(const string& message, std::shared_ptr<BrokerSession
 
   if(jobj.contains("server"))
     server_id = string(jobj["server"].as_string());
+
   if(jobj.contains("id"))
     session_id = string(jobj["id"].as_string());
 

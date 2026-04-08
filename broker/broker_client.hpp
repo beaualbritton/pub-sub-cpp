@@ -4,7 +4,7 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/beast.hpp>
 #include <boost/beast/core/error.hpp>
-#include <boost/uuid.hpp>
+#include <boost/uuid/uuid.hpp>
 #include <deque>
 #include <iostream>
 

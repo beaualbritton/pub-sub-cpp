@@ -75,7 +75,7 @@ void BrokerClient::on_handshake(beast::error_code ec)
 
   json::object msg;
   msg["action"] = "register";
-  msg["id"] = server_id_;
+  msg["server"] = server_id_;
   send(json::serialize(msg));
 
   ws_.async_read(buffer_,beast::bind_front_handler(&BrokerClient::on_read, this));
