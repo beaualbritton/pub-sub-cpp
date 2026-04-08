@@ -1,8 +1,9 @@
 #pragma once
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
-#include <boost/uuid.hpp>
+#include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
 #include "session.hpp"
 namespace asio  = boost::asio;
 namespace beast = boost::beast;
