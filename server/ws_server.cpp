@@ -6,6 +6,7 @@
 #include <boost/beast.hpp>
 #include <boost/json.hpp>
 #include <boost/json/object.hpp>
+#include <boost/json/serialize_options.hpp>
 #include <iostream>
 #include <memory>
 #include <set>
@@ -26,7 +27,7 @@ std::shared_ptr<Session> WebSocketServer::create_session(tcp::socket socket)
   //auto -> std::function<void(const string& message)>
   auto handler_lambda = [this, session](const string& message)
   {
-    handle_message(message,session);
+    handle_client_message(message,session);
   };
 
   session->set_handler(std::move(handler_lambda));
@@ -34,17 +35,24 @@ std::shared_ptr<Session> WebSocketServer::create_session(tcp::socket socket)
   return session;
 }
 
-void WebSocketServer::handle_message(const string& message, shared_ptr<WebSocketSession> session)
+void WebSocketServer::handle_client_message(const string& message, shared_ptr<WebSocketSession> session)
 {
   //reading json into object from end-user
   json::value jv = json::parse(message);
   json::object& jobj = jv.as_object();
+  
+  string action = "", username = "", room = "";
 
-  string action = string(jobj["action"].as_string());
-  string username = string(jobj["from"].as_string());
+  if(jobj.contains("action"))
+    action = string(jobj["action"].as_string());
 
-  //TODO: room field for end-users
-  string room = "general";
+  if(jobj.contains("id"))
+    username = string(jobj["id"].as_string());
+
+  if(jobj.contains("room"))
+    room = string(jobj["room"].as_string());
+  else
+    room = "general";
 
   switch(parse_action(action))
   {
@@ -56,23 +64,114 @@ void WebSocketServer::handle_message(const string& message, shared_ptr<WebSocket
     case Action::PUBLISH:
     {
       string content = string(jobj["content"].as_string());
-
       publish(username, room, content);
       break;
     }
-    case Action::NOOP:
+    case Action::FETCH_ALL_ROOMS:
+    {
+      broadcast(action, username, room,"none");
+      return;
+    }
+    case Action::FETCH_ROOMS:
+    {
+      broadcast(action, username, room,"none");
+      return;
+    }
+    case Action::FETCH_SUBSCRIBERS:
+    {
+      broadcast(action, username, room,"none");
+      return;
+    }
+    default:
       return;
   };
 
 }
 
 //handles forwarded/received messages FROM broker, does not forward TO broker
-void WebSocketServer::handle_forward(const string& msg_recv)
+void WebSocketServer::handle_broker_message(const string& msg_recv)
 {
   //reading json into object from broker
   json::value jv = json::parse(msg_recv);
   json::object& jobj = jv.as_object();
 
+  string action = "";
+  if(jobj.contains("action"))
+    action = string(jobj["action"].as_string());
+
+  switch(parse_action(action))
+  {
+    case Action::FORWARD:
+    {
+      forward(jobj);
+      return;
+    }
+    case Action::FETCH_ALL_ROOMS:
+    {
+      send_back(jobj);
+      return;
+    }
+    case Action::FETCH_SUBSCRIBERS:
+    {
+      send_back(jobj);
+      return;
+    }
+    case Action::FETCH_ROOMS:
+    {
+      send_back(jobj);
+      return;
+    }
+
+    default:
+      return;
+  }
+}
+
+//set handler for broker_client, handles received messages from broker to this server
+void WebSocketServer::set_broker_handler()
+{
+  //auto -> std::function<void(const string& message)>
+  auto forward_lambda = [this](const string& message)
+  {
+    handle_broker_message(message);
+  };
+
+  broker_client.set_handler(forward_lambda);
+}
+
+//create a json object to send directly to broker
+//broadcasting to broker instead of clients
+void WebSocketServer::broadcast(const string& action, const string& username, const string& room, const string& message)
+{
+  json::object msg;
+  msg["action"] = action;
+  msg["server"] = boost::uuids::to_string(this->id_);
+  msg["id"] = username;
+  msg["room"] = room;
+  msg["message"] = message;
+
+  broker_client.send(json::serialize(msg));
+}
+
+void WebSocketServer::join(const string& username, const string& room, std::shared_ptr<WebSocketSession> session)
+{
+  connections[username] = session;
+  
+  //need to tell broker to subscribe before broadcasting 'X joined the room'
+  broadcast("subscribe", username, room, "");
+
+  string content = "joined room " + room;
+  publish(username, room, content);
+}
+
+void WebSocketServer::publish(const string& username, const string& room, string& content)
+{
+  content = username + ": " + content;
+  broadcast("forward",username, room, content);
+}
+
+void WebSocketServer::forward(json::object& jobj)
+{
   string from = string(jobj["id"].as_string());
   string msg = string(jobj["message"].as_string());
 
@@ -107,52 +206,18 @@ void WebSocketServer::handle_forward(const string& msg_recv)
   std::cout << msg << std::endl;
 }
 
-//set handler for broker_client, handles received messages from broker to this server
-void WebSocketServer::set_forward_handler()
+void WebSocketServer::send_back(json::object& jobj)
 {
-  //auto -> std::function<void(const string& message)>
-  auto forward_lambda = [this](const string& message)
-  {
-    handle_forward(message);
-  };
+  if(!jobj.contains("id"))
+    return;
 
-  broker_client.set_handler(forward_lambda);
+  string from = string(jobj["id"].as_string());
 
-}
+  shared_ptr<WebSocketSession> client;
+  client = connections[from].lock();
 
-//create a json object to send directly to broker
-//broadcasting to broker instead of clients
-void WebSocketServer::broadcast(const string& username, const string& room, const string& message)
-{
-  json::object msg;
-  msg["action"] = "forward";
-  msg["id"] = username;
-  msg["room"] = room;
-  msg["message"] = message;
-
-  broker_client.send(json::serialize(msg));
-}
-
-void WebSocketServer::join(const string& username, const string& room, std::shared_ptr<WebSocketSession> session)
-{
-  connections[username] = session;
-  
-  //need to tell broker to subscribe before broadcasting 'X joined the room'
-  json::object msg;
-  msg["action"] = "subscribe";
-  msg["id"] = username;
-  msg["room"] = room;
-
-  broker_client.send(json::serialize(msg));
-
-  string content = "joined room " + room;
-  publish(username, room, content);
-}
-
-void WebSocketServer::publish(const string& username, const string& room, string& content)
-{
-  content = username + ": " + content;
-  broadcast(username, room, content);
+  if(client)
+    client->send(json::serialize(jobj));
 }
 
 int main()
