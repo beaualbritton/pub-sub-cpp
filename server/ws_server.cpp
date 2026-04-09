@@ -197,7 +197,7 @@ void WebSocketServer::forward(json::object& jobj)
       if(client)
       {
         if(sub != from)
-          client->send(msg);
+          client->send(json::serialize(jobj));
       }
       else
         connections.erase(client_iterator); //TODO: delete connections another way
