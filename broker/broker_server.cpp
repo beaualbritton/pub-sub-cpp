@@ -83,21 +83,21 @@ void Broker::handle_message(const string& message, std::shared_ptr<BrokerSession
     case Action::FETCH_ROOMS:
     {
       set<string> rooms = fetch_rooms(session_id);
-      append_jobj(jobj, rooms, "rooms");
+      append_jobj(jobj, rooms, "fetched_rooms");
       send_back(jobj,session);
       break;
     }
     case Action::FETCH_ALL_ROOMS:
     {
       set<string> all_rooms = fetch_all_rooms();
-      append_jobj(jobj, all_rooms, "all_rooms");
+      append_jobj(jobj, all_rooms, "fetched_all_rooms");
       send_back(jobj,session);
       break;
     }
     case Action::FETCH_SUBSCRIBERS:
     {
       set<string> subscribers = fetch_subscribers(room);
-      append_jobj(jobj, subscribers, "subscribers");
+      append_jobj(jobj, subscribers, "fetched_subscribers");
       send_back(jobj,session);
       break;
     }
