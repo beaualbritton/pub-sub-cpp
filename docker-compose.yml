@@ -6,6 +6,15 @@ services:
     ports:
       - "6767:6767"
       # :^)
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "6767"]
+      interval: 60m
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+      start_interval: 1s
   server1:
     build:
       context: .
@@ -13,7 +22,8 @@ services:
     ports:
       - "6969:6969"
     depends_on:
-      - broker
+      broker:
+        condition: service_healthy
     environment:
       - PORT=6969
   server2:
@@ -23,16 +33,7 @@ services:
     ports:
       - "9696:9696"
     depends_on:
-      - broker
+      broker:
+        condition: service_healthy
     environment:
       - PORT=9696
-  server3:
-    build:
-      context: .
-      dockerfile: server/Dockerfile
-    ports:
-      - "2121:2121"
-    depends_on:
-      - broker
-    environment:
-      - PORT=2121
