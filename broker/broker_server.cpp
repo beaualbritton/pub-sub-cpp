@@ -106,6 +106,7 @@ void Broker::handle_message(const string& message, std::shared_ptr<BrokerSession
       //appends message received from server with a subscriber list
       //depending on room's subscribers - send message appended w/ universal list
       forward(jobj, room);
+      logger_.on_log(jobj);
       break;
     }
     case Action::NOOP:

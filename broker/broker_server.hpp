@@ -1,4 +1,5 @@
 #include "../lib/server.hpp"
+#include "logger.hpp"
 #include "broker_session.hpp"
 #include <map>
 #include <set>
@@ -44,4 +45,5 @@ class Broker : public Server
   */
   map<string, set<string>> rooms;
   std::map<std::string,std::weak_ptr<BrokerSession>> connections;
+  static inline Logger logger_;
 };
