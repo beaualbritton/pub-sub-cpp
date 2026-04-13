@@ -63,6 +63,7 @@ void WebSocketServer::handle_client_message(const string& message, shared_ptr<We
     }
     case Action::UNSUBSCRIBE:
     {
+      unsubscribe(username, room);
       break;
     }
     case Action::PUBLISH:
