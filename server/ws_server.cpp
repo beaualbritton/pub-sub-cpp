@@ -61,6 +61,10 @@ void WebSocketServer::handle_client_message(const string& message, shared_ptr<We
       join(username, room, session);
       break;
     }
+    case Action::UNSUBSCRIBE:
+    {
+      break;
+    }
     case Action::PUBLISH:
     {
       string content = string(jobj["content"].as_string());
@@ -161,6 +165,14 @@ void WebSocketServer::join(const string& username, const string& room, std::shar
   broadcast("subscribe", username, room, "");
 
   string content = "joined room " + room;
+  publish(username, room, content);
+}
+
+
+void WebSocketServer::unsubscribe(const string& username, const string& room)
+{
+  broadcast("unsubscribe", username, room, "");
+  string content = "left the room ";
   publish(username, room, content);
 }
 

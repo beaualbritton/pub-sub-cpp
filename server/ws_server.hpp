@@ -31,6 +31,7 @@ class WebSocketServer : public Server
 
   void broadcast(const string& action, const string& username, const string& room, const string& message);
   void join(const string& username, const string& room, std::shared_ptr<WebSocketSession> session);
+  void unsubscribe(const string& username, const string& room);
   void publish(const string& username, const string& room, string& content);
   void forward(json::object& jobj);
   void fetch(json::object& jobj);
